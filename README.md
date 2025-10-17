@@ -23,3 +23,4 @@ A collections of Zig examples
 * [Non-blocking I/O - kqueue](kqueue.zig)
 * [Task scheduler](task.zig)
 * [Task scheduler - with a priority queue](task2.zig)
+* [Basic shell](shell.zig)
