@@ -11,7 +11,7 @@ pub fn main() !void {
     defer std.process.argsFree(allocator, args);
 
     print("there are {d} args:\n", .{args.len});
-    for (args) |arg| {
+    for (args) |index, arg| {
         print("\t{s}\n", .{arg});
     }
 }
