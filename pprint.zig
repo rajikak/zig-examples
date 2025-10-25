@@ -16,11 +16,22 @@ const Status = enum {
 };
 
 const Point = struct {
-    x: i32,
-    y: i32,
+    x: f32,
+    y: f32,
 
+    // format v1
+    //pub fn format(self: Point, writer: anytype) !void {
+    //    try writer.print("Point(x = {}, y = {})", .{ self.x, self.y });
+    //}
+
+    // format v2
+    //pub fn format(self: Point, writer: anytype) !void {
+    //    try writer.print("Point(x = {:.3}, y = {:.6})", .{ self.x, self.y });
+    //}
+
+    // format v3
     pub fn format(self: Point, writer: anytype) !void {
-        try writer.print("Point({}, {})", .{ self.x, self.y });
+        try writer.print("Point(x = {[x1]:[w]}, y = {[y1]})", .{ .x1 = self.x, .w = 10, .y1 = self.y });
     }
 };
 
@@ -28,8 +39,9 @@ pub fn main() !void {
     const s1 = Status.Ok;
     const s2 = Status.Warning;
     const s3 = Status.Error;
-    const p = Point{ .x = 5, .y = 10 };
-
     std.debug.print("{f} {f} {f}\n", .{ s1, s2, s3 });
-    std.debug.print("{f}\n", .{p});
+
+    const p = Point{ .x = 5.101212, .y = 10.121212 };
+
+    std.debug.print("{f}\n", .{p}); // format v1, v2, v3
 }
