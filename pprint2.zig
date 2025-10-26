@@ -4,7 +4,7 @@ const Name = struct {
     value: []const u8,
 
     pub fn format(self: Name, writer: anytype) !void {
-        try writer.print("{s}", .{self.value});
+        try writer.print("Loc({s})", .{self.value});
     }
 };
 
@@ -14,8 +14,8 @@ const Point = struct {
     name: Name,
 
     pub fn format(self: Point, writer: anytype) !void {
-        //try writer.print("Point(x = {[x1]:[w]}, y = {[y1]}, ", .{ .x1 = self.x, .w = 10, .y1 = self.y });
-        try writer.print("name = {f})", self.name);
+        try writer.print("Point(x = {[x1]:[w]}, y = {[y1]}, ", .{ .x1 = self.x, .w = 10, .y1 = self.y });
+        try writer.print("name = {f})", .{self.name});
     }
 };
 
