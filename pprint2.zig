@@ -15,7 +15,7 @@ const Point = struct {
 
     pub fn format(self: Point, writer: anytype) !void {
         try writer.print("Point(x = {[x1]:[w]}, y = {[y1]}, ", .{ .x1 = self.x, .w = 10, .y1 = self.y });
-        try writer.print("name = {f})", .{self.name});
+        try writer.print("name = {f})", .{self.name}); // named variables and directly using will not work
     }
 };
 
