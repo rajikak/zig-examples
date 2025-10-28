@@ -3,3 +3,4 @@ zig-out/
 *.idea
 *.swp
 .DS_Store
+*.swo
