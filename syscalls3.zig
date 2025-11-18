@@ -40,11 +40,12 @@ pub fn main() !void {
     }
 
     var status: u32 = undefined;
-    const waitpid_flags = std.os.linux.W.UNTRACED | std.os.linux.W.CONTINUED;
-    const res = std.os.linux.waitpid(@intFromPtr(&child_pid), &status, waitpid_flags);
+    const waitpid_flags = linux.W.UNTRACED | linux.W.CONTINUED;
+    const pid: linux.pid_t = @intCast(child_pid);
+    const res = std.os.linux.waitpid(pid, &status, waitpid_flags);
     if (res < 0) {
         std.debug.print("wait pid error: {}\n", .{res});
     }
 
-    std.debug.print("Parent: PID = {d}, child PID = {d}\n", .{ std.os.linux.getpid(), child_pid });
+    std.debug.print("Parent: PID = {d}, child PID = {d}, {d}\n", .{ std.os.linux.getpid(), child_pid, pid });
 }
