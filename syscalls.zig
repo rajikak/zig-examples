@@ -20,12 +20,16 @@ fn clone2() !void {
 }
 
 fn clone1() !void {
-    const stack: [4096]u8 = undefined;
-    const stack_top = stack[stack.len - 1];
-    const flags: u32 = linux.SIG.CHLD;
-    const tls: u32 = 0;
+    var stack: [4096]u8 = undefined;
+    const ptrcast: *u8 = @constCast(&stack);
+    const stack_top = ptrcast + stack.len;
+    const flags: u32 = linux.SIG.CHLD | linux.CLONE.NEWUTS;
+    const tls: usize = 1;
 
-    const pid = linux.clone(&child, stack_top, flags, 1234, null, tls, null);
+    const ftype = *const fn (arg: usize) callconv(.c) u8;
+    const chfun: ftype = @ptrCast(&child);
+
+    const pid = linux.clone(chfun, stack_top, flags, 1234, null, tls, null);
     if (pid < 0) {
         return error.Unpexpcted;
     }
