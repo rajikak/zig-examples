@@ -1,5 +1,6 @@
 const std = @import("std");
 const linux = std.os.linux;
+const posix = std.posix;
 
 fn child(arg: usize) callconv(.c) u8 {
     std.debug.print("Hello from child! arg={any}\n", .{arg});
@@ -39,13 +40,16 @@ pub fn main() !void {
         return;
     }
 
-    var status: u32 = undefined;
+    //var status: u32 = undefined;
     const waitpid_flags = linux.W.UNTRACED | linux.W.CONTINUED;
-    const pid: linux.pid_t = @intCast(child_pid);
-    const res = std.os.linux.waitpid(pid, &status, waitpid_flags);
-    if (res < 0) {
-        std.debug.print("wait pid error: {}\n", .{res});
-    }
+    const pid2: linux.pid_t = @intCast(child_pid);
+    //const res = std.os.linux.waitpid(pid2, &status, waitpid_flags);
+    //const res = std.os.linux.waitpid(pid2, &status, 0);
+    //if (res < 0) {
+    //    std.debug.print("wait pid error: {}\n", .{res});
+    //}
+    const res1 = posix.waitpid(pid2, waitpid_flags);
+    std.debug.print("posix.waitpid = {}\n", .{res1.pid});
 
-    std.debug.print("Parent: PID = {d}, child PID = {d}, {d}\n", .{ std.os.linux.getpid(), child_pid, pid });
+    std.debug.print("Parent: PID = {d}, child PID = {d}, {d}\n", .{ std.os.linux.getpid(), child_pid, pid2 });
 }
