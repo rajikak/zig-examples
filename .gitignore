@@ -4,3 +4,4 @@ zig-out/
 *.swp
 .DS_Store
 *.swo
+a.out

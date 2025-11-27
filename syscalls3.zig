@@ -3,7 +3,8 @@ const linux = std.os.linux;
 const posix = std.posix;
 
 fn child(arg: usize) callconv(.c) u8 {
-    std.debug.print("Hello from child! arg={any}\n", .{arg});
+    _ = arg;
+    std.debug.print("hello from child\n", .{});
     return 0;
 }
 
@@ -21,7 +22,7 @@ pub fn main() !void {
     const flags: u32 = linux.CLONE.VM | linux.CLONE.FS | linux.CLONE.FILES |
         linux.CLONE.SIGHAND | linux.CLONE.THREAD;
 
-    const val = Args{ .name = "arg", .value = "value" };
+    const val = Args{ .name = "name value", .value = "arg value" };
 
     // Call clone
     const child_pid = linux.clone(
@@ -41,15 +42,15 @@ pub fn main() !void {
     }
 
     //var status: u32 = undefined;
-    const waitpid_flags = linux.W.UNTRACED | linux.W.CONTINUED;
+    //const waitpid_flags = linux.W.UNTRACED | linux.W.CONTINUED;
     const pid2: linux.pid_t = @intCast(child_pid);
     //const res = std.os.linux.waitpid(pid2, &status, waitpid_flags);
     //const res = std.os.linux.waitpid(pid2, &status, 0);
     //if (res < 0) {
     //    std.debug.print("wait pid error: {}\n", .{res});
     //}
-    const res1 = posix.waitpid(pid2, waitpid_flags);
-    std.debug.print("posix.waitpid = {}\n", .{res1.pid});
+    //const res1 = posix.waitpid(pid2, waitpid_flags);
+    //std.debug.print("posix.waitpid = {}\n", .{res1.pid});
 
     std.debug.print("Parent: PID = {d}, child PID = {d}, {d}\n", .{ std.os.linux.getpid(), child_pid, pid2 });
 }
