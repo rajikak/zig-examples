@@ -8,11 +8,16 @@
 #include <sched.h>
 
 
-static int child(void *arg) {
-	char *input = (char *)arg;
+struct Arguments {
+	int n;
+	char buf[100];
+};
 
-	printf("child:args = '%s'\n", input);
-	strcpy(input, "arguments received successfully");
+static int child(void *arg) {
+	struct Arguments *input = (struct Arguments*)arg;
+
+	printf("child: n = '%d', args = '%s'\n", input->n, input->buf);
+	strcpy(input->buf, "arguments received successfully");
 	return 0;
 }
 
@@ -31,10 +36,11 @@ int main(int argc, char **argv) {
 		flags |= CLONE_VM;
 	}
 
-	char buf[100];
-	strcpy(buf, "gcc -wall -ansi -Wall -pedantic");
+	struct Arguments arg;
+	arg.n = 5; 
+	strcpy(arg.buf, "gcc -wall -ansi -Wall -pedantic");
 
-	if (clone(child, stack + STACK_SIZE, flags | SIGCHLD, &buf) == -1) {
+	if (clone(child, stack + STACK_SIZE, flags | SIGCHLD, &arg) == -1) {
 		perror("clone");
 		exit(1);
 	}
@@ -45,6 +51,6 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
-	printf("parenet: child exited with status '%d', message from child = '%s'\n", status, buf);
+	printf("parenet: child exited with status '%d', message from child = '%s'\n", status, arg.buf);
 	return 0;
 }
