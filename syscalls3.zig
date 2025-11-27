@@ -18,9 +18,9 @@ pub fn main() !void {
     //const stack_mem = try allocator.alloc(u8, stack_size);
     const stack: [4096]u8 = undefined;
 
-    //const flags: u32 = linux.SIG.CHLD | linux.CLONE.NEWUTS;
-    const flags: u32 = linux.CLONE.VM | linux.CLONE.FS | linux.CLONE.FILES |
-        linux.CLONE.SIGHAND | linux.CLONE.THREAD;
+    const flags: u32 = linux.CLONE.VM;
+    // const flags: u32 = linux.SIG.CHLD | linux.CLONE.NEWUTS;
+    // const flags: u32 = linux.CLONE.VM | linux.CLONE.FS | linux.CLONE.FILES | linux.CLONE.SIGHAND | linux.CLONE.THREAD;
 
     const val = Args{ .name = "name value", .value = "arg value" };
 
