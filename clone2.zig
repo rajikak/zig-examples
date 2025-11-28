@@ -7,6 +7,7 @@ fn child(arg: usize) callconv(.c) u8 {
     const pid = linux.getpid();
     const ppid = linux.getppid();
 
+    std.debug.print("child: work sarted\n", .{});
     std.Thread.sleep(1_000_000);
     std.debug.print("child:  tid: {d}, pid: {d}, ppid:{d}\n", .{ tid, pid, ppid });
     return 0;
@@ -35,6 +36,29 @@ pub fn main() !void {
 
     var status: u32 = undefined;
     const wpid: linux.pid_t = @intCast(pid_or_err);
-    const res = linux.waitpid(wpid, &status, 0);
-    std.debug.print("parent: tid: {d}, pid: {d}, child exited result(clone): {d}, status: {d}, result(waitpid): {d}\n", .{ linux.gettid(), linux.getpid(), wpid, status, res });
+    const wflags = std.c.W.UNTRACED | std.c.W.CONTINUED;
+
+    var res: usize = undefined;
+    // https://man7.org/linux/man-pages/man2/wait.2.html
+    while (true) {
+        res = linux.waitpid(wpid, &status, wflags);
+        if (res == -1) {
+            std.debug.print("waitpid error\n", .{});
+            return -1;
+        }
+
+        if (std.c.W.IFEXITED(status)) {
+            std.debug.print("exited, status = {}\n", .{status});
+            break;
+            //} else if (std.c.W.IFSIGNALED(status)) {
+            //std.debug.print("terminated by signal = {}\n", .{status});
+            //  break;
+            //} else if (std.c.W.IFSTOPPED(status)) {
+            //    std.debug.print("stopped by signal = {}\n", .{status});
+            //} else if (std.c.W.IFCONTINUED(status)) {
+            //    std.debug.print("continued\n");
+        }
+    }
+
+    std.debug.print("parent: tid: {d}, pid: {d}, child exited result(clone): {d}, status: {d}, result(waitpid): {}\n", .{ linux.gettid(), linux.getpid(), wpid, status, res });
 }
