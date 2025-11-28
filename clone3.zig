@@ -10,6 +10,7 @@ fn child(arg: usize) callconv(.c) u8 {
     std.debug.print("child: work sarted\n", .{});
     std.Thread.sleep(4_000_000);
     std.debug.print("child:  tid: {d}, pid: {d}, ppid:{d}\n", .{ tid, pid, ppid });
+    std.debug.print("child: finished child\n", .{});
     return 0;
 }
 pub fn main() !void {
@@ -37,10 +38,10 @@ pub fn main() !void {
 
     var status: u32 = undefined;
     const wpid: linux.pid_t = @intCast(pid_or_err);
-    //const wflags = std.c.W.UNTRACED | std.c.W.CONTINUED;
+    const wflags = std.c.W.UNTRACED | std.c.W.CONTINUED;
 
     // https://man7.org/linux/man-pages/man2/wait.2.html
-    const res = linux.waitpid(wpid, &status, 0);
+    const res = linux.waitpid(wpid, &status, wflags);
 
     std.debug.print("parent: tid: {d}, pid: {d}, child exited result(clone): {d}, status: {d}, result(waitpid): {}\n", .{ linux.gettid(), linux.getpid(), wpid, status, res });
 }
