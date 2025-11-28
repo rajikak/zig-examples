@@ -11,7 +11,7 @@
 static int child(void *arg) {
 	char *input = (char *)arg;
 
-	printf("child:args = '%s'\n", input);
+	printf("child:args = '%s', tid = '%d', pid = '%d'\n", input, gettid(), getpid());
 	strcpy(input, "arguments received successfully");
 	return 0;
 }
@@ -45,6 +45,6 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
-	printf("parenet: child exited with status '%d', message from child = '%s'\n", status, buf);
+	printf("parenet: child exited with status '%d', tid = '%d', pid = '%d', message from child = '%s'\n", status, gettid(), getpid(), buf);
 	return 0;
 }

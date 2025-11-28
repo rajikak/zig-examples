@@ -1,6 +1,5 @@
 const std = @import("std");
 const linux = std.os.linux;
-const posix = std.posix;
 
 fn child(arg: usize) callconv(.c) u8 {
     std.debug.print("child: pid: '{d}', arg: {d}\n", .{ linux.getpid(), arg });
@@ -14,29 +13,24 @@ pub fn main() !void {
 
     const flags: u32 = linux.CLONE.VM;
 
+    const stack_ptr = @intFromPtr(stack.ptr + stack_size);
     const child_pid = linux.clone(
         &child,
-        @intFromPtr(stack.ptr + stack_size),
+        stack_ptr,
         flags,
-        32,
+        0,
         null,
         0,
         null,
     );
 
-    if (child_pid == -1) {
-        std.debug.print("clone failed, error: {d}\n", .{child_pid});
-        return -1;
-    }
-
-    var status: u32 = 0;
+    var status: u32 = undefined;
     const waitpid_flags: u32 = 0;
-    const wait_pid_input: linux.pid_t = @intCast(child_pid);
-    const wait_pid = linux.waitpid(wait_pid_input, &status, waitpid_flags);
+    const rc = linux.waitpid(@intCast(child_pid), &status, waitpid_flags);
 
     std.debug.print("parent: child exited with status: '{d}', pid: '{d}', wait_pid: '{d}'\n", .{
         child_pid,
         linux.getpid(),
-        wait_pid,
+        rc,
     });
 }

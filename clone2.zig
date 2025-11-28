@@ -5,9 +5,10 @@ fn child(arg: usize) callconv(.c) u8 {
     _ = arg;
     const tid = linux.gettid();
     const pid = linux.getpid();
+    const ppid = linux.getppid();
 
     std.Thread.sleep(1_000_000);
-    std.debug.print("child: tid: {d}, pid: {}\n", .{ tid, pid });
+    std.debug.print("child:  tid: {d}, pid: {d}, ppid:{d}\n", .{ tid, pid, ppid });
     return 0;
 }
 pub fn main() !void {
@@ -30,10 +31,10 @@ pub fn main() !void {
         null,
     );
     std.debug.print("clone returned, child pid: {}\n", .{pid_or_err});
-    std.Thread.sleep(2_000_000);
+    std.Thread.sleep(1_000_000);
 
-    // wiat for the child process to exit
     var status: u32 = undefined;
-    const rc = linux.waitpid(@intCast(pid_or_err), &status, 0);
-    std.debug.print("parent: child exited result: {}, status: {}\n", .{ rc, status });
+    const wpid: linux.pid_t = @intCast(pid_or_err);
+    const res = linux.waitpid(wpid, &status, 0);
+    std.debug.print("parent: tid: {d}, pid: {d}, child exited result(clone): {d}, status: {d}, result(waitpid): {d}\n", .{ linux.gettid(), linux.getpid(), wpid, status, res });
 }
