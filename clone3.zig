@@ -50,7 +50,8 @@ pub fn main() !void {
 
     var status: u32 = undefined;
     const wpid: linux.pid_t = @intCast(pid_or_err);
-    const wflags = std.c.W.UNTRACED | std.c.W.CONTINUED;
+    // const wflags = std.c.W.UNTRACED | std.c.W.CONTINUED;
+    const wflags = 0;
 
     // https://man7.org/linux/man-pages/man2/wait.2.html
     const res = linux.waitpid(wpid, &status, wflags);
