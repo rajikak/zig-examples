@@ -22,8 +22,6 @@ fn child(arg: usize) callconv(.c) u8 {
 }
 
 pub fn main() !void {
-    std.debug.print("namespace\n", .{});
-
     var fd: [2]i32 = undefined;
     const pres = std.os.linux.pipe(&fd);
 
@@ -53,6 +51,19 @@ pub fn main() !void {
     );
     var status: u32 = undefined;
     const wait_flags = 0;
+
+    const pipe = fd[1];
+    const wres = linux.write(pipe, "ok", 2);
+    if (wres == -1) {
+        std.debug.print("error: write\n", .{});
+        return error.SyscallError;
+    }
+
+    const cres = linux.close(pipe);
+    if (cres == -1) {
+        std.debug.print("error: close\n", .{});
+        return error.SyscallError;
+    }
 
     _ = linux.waitpid(@intCast(pid), &status, wait_flags);
     std.debug.print("parent: tid: {}, pid: {}, ppid: {}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
