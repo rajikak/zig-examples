@@ -21,7 +21,9 @@ fn child(arg: usize) callconv(.c) u8 {
     std.debug.print("[child]  tid={d}, pid={d}, ppid={d}, buf={s}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), input.buf });
 
     var buffer: [std.posix.HOST_NAME_MAX]u8 = undefined;
-    const res = try std.posix.gethostname(&buffer);
+    const res = std.posix.gethostname(&buffer) catch |err| {
+        std.debug.print("error: {}", err);
+    };
     const uts = std.posix.uname();
     std.debug.print("hostname={s}, uts={s}\n", .{ res, uts.nodename });
 
@@ -31,6 +33,14 @@ fn child(arg: usize) callconv(.c) u8 {
         const err = std.posix.errno(rc);
         std.debug.print("[error]sethostname failed, error={}\n", .{err});
     }
+
+    return 0;
+}
+
+fn child2(arg: ?*anyopaque) callconv(.c) c_int {
+    _ = arg;
+    //std.debug.print("[child]  tid={d}, pid={d}, ppid={d}, buf={s}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), input.buf });
+    std.debug.print("[child]  tid={d}, pid={d}, ppid={d}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
 
     return 0;
 }
@@ -48,9 +58,18 @@ pub fn main() !void {
     const stack_ptr = @intFromPtr(stack_memory.ptr + stack_size);
     const clone_flags = linux.CLONE.NEWUTS | linux.SIG.CHLD | linux.CLONE.VM;
 
-    const res = c.clone(child, stack_ptr, clone_flags, null, 0, null);
-    _ = res;
+    const pid = c.clone(child2, @ptrFromInt(stack_ptr), clone_flags, null);
+    if (pid == -1) {
+        std.debug.print("[parent] clone error\n", .{});
+        return error.SyscallError;
+    }
+    std.debug.print("[parent] tid={d}, pid={d}, ppid={d}, clone={d}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), pid });
 
-    //std.debug.print("[parent] tid={d}, pid={d}, ppid={d}, clone={d}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), pid });
-
+    const wait_flags = 0;
+    var status: u32 = undefined;
+    const res = linux.waitpid(@intCast(pid), &status, wait_flags);
+    if (res == -1) {
+        std.debug.print("error: waitpid\n", .{});
+        return error.SyscallError;
+    }
 }

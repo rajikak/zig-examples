@@ -1,20 +1,27 @@
 const std = @import("std");
 const linux = std.os.linux;
 const posix = std.posix;
+const c = @cImport({
+    @cInclude("unistd.h");
+    @cDefine("_GNU_SOURCE", {});
+    @cInclude("sched.h");
+});
 
 fn child_fn(arg: usize) callconv(.c) u8 {
     _ = arg;
-    // Change hostname in the new UTS namespace
-    //const new_name = "zig-uts-demo";
-    // sethostname() is available via posix
-    //if (posix.sethostname(new_name)) |err| {
-    //    std.debug.print("sethostname failed: {s}\n", .{err});
-    //    return 1;
-    //}
+    const new_name = "anvilci.org.ip-172-31-28-233.ec2.internal";
 
     // Show uname() data
     const uts: posix.utsname = posix.uname();
-    std.debug.print("Child in new UTS namespace: nodename={s}\n", .{uts.nodename});
+    //std.debug.print("[child]in new UTS namespace: nodename={s}\n", .{uts.nodename});
+
+    const rc = c.sethostname(new_name, new_name.len);
+    if (rc != 0) {
+        const err = std.posix.errno(rc);
+        std.debug.print("[child] sethostname failed, error={any}\n", .{err});
+        return 1;
+    }
+    std.debug.print("[child]in new UTS namespace: nodename={s}\n", .{uts.nodename});
 
     return 0; // exit status of the child
 }
@@ -44,17 +51,17 @@ pub fn main() !void {
 
     if (pid == -1) {
         const err = posix.errno(pid);
-        return std.debug.print("clone failed: errno={}\n", .{err});
+        return std.debug.print("[parent]clone failed: errno={}\n", .{err});
     }
 
     // Parent waits for SIGCHLD / child exit
     const waited = posix.waitpid(@intCast(pid), 0);
     if (waited.status < 0) {
         const err = posix.errno(waited.status);
-        return std.debug.print("waitpid failed: errno={}\n", .{err});
+        return std.debug.print("[parent]waitpid failed: errno={}\n", .{err});
     }
 
     // Show parent’s hostname (unchanged)
     const uts: posix.utsname = posix.uname();
-    std.debug.print("Parent hostname unaffected: nodename={s}\n", .{uts.nodename});
+    std.debug.print("[parent] hostname unaffected: nodename={s}\n", .{uts.nodename});
 }
