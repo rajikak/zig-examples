@@ -60,7 +60,7 @@ pub fn main() !void {
 
     const pid = c.clone(child2, @ptrFromInt(stack_ptr), clone_flags, null);
     if (pid == -1) {
-        std.debug.print("[parent] clone error\n", .{});
+        std.debug.print("[parent] clone error{}, {}\n", .{ std.posix.errno(pid), std.posix.errno() });
         return error.SyscallError;
     }
     std.debug.print("[parent] tid={d}, pid={d}, ppid={d}, clone={d}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), pid });
