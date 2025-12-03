@@ -16,7 +16,16 @@ fn child(arg: usize) callconv(.c) u8 {
     const pid = linux.getpid();
     const ppid = linux.getppid();
 
-    std.debug.print("child:  tid: {}, pid: {}, ppid: {}, n = {d}, args = {s}\n", .{ tid, pid, ppid, input.n, input.buf });
+    var buf: [100]u8 = undefined;
+    var w = std.fs.File.stdout().writer(&buf);
+    const stdout = &w.interface;
+
+    stdout.print("child:  tid: {}, pid: {}, ppid: {}, n = {d}, args = {s}\n", .{ tid, pid, ppid, input.n, input.buf }) catch |err| {
+        std.debug.print("writer failed: {any}\n", .{err});
+    };
+    stdout.flush() catch |err| {
+        std.debug.print("flush failed: {any}\n", .{err});
+    };
 
     return 0;
 }
@@ -30,7 +39,11 @@ pub fn main() !void {
         return error.SyscallError;
     }
 
-    std.debug.print("pipe {d}, reader_fd: {d}, writer_fd:{d}\n", .{ pres, fd[0], fd[1] });
+    var buf: [100]u8 = undefined;
+    var w = std.fs.File.stdout().writer(&buf);
+    const stdout = &w.interface;
+    try stdout.print("pipe {d}, reader_fd: {d}, writer_fd:{d}\n", .{ pres, fd[0], fd[1] });
+    try stdout.flush();
 
     const stack_size: usize = 8 * 1024;
     const stack_memory = try std.heap.page_allocator.alloc(u8, stack_size);
@@ -40,7 +53,7 @@ pub fn main() !void {
     const clone_flags = linux.CLONE.VM | linux.SIG.CHLD | linux.CLONE.NEWUTS;
 
     const arg = Arg.init(4, "go build -o main");
-    const pid: usize = linux.clone(
+    const pid = linux.clone(
         child,
         stack_ptr,
         clone_flags,
@@ -49,9 +62,18 @@ pub fn main() !void {
         0,
         null,
     );
+
+    const e = linux.E.init(pid);
+    if (e != .SUCCESS) {
+        std.debug.print("there was an error: {any}\n", .{e});
+        return error.SyscallError;
+    }
     const trunc: u32 = @truncate(pid);
     const bitcast: u64 = @bitCast(pid);
-    std.debug.print("parent: pid: {}, truncate: {d}, bitcast: {d}\n", .{ pid, trunc, bitcast });
+
+    try stdout.print("parent: pid: {}, truncate: {d}, bitcast: {d}\n", .{ pid, trunc, bitcast });
+    try stdout.flush();
+
     var status: u32 = undefined;
     const wait_flags = 0;
 
