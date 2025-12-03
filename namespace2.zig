@@ -2,6 +2,7 @@ const std = @import("std");
 const linux = std.os.linux;
 
 const c = @cImport({
+    @cInclude("string.h");
     @cInclude("unistd.h");
     @cDefine("_GNU_SOURCE", {});
     @cInclude("sched.h");
@@ -60,7 +61,7 @@ pub fn main() !void {
 
     const pid = c.clone(child2, @ptrFromInt(stack_ptr), clone_flags, null);
     if (pid == -1) {
-        std.debug.print("[parent] clone error{}, {}\n", .{ std.posix.errno(pid), std.posix.errno() });
+        std.debug.print("[parent] clone error{}, {s}\n", .{ std.posix.errno(pid), c.strerror(pid) });
         return error.SyscallError;
     }
     std.debug.print("[parent] tid={d}, pid={d}, ppid={d}, clone={d}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), pid });

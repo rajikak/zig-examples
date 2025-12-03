@@ -37,10 +37,10 @@ pub fn main() !void {
     defer std.heap.page_allocator.free(stack_memory);
 
     const stack_ptr = @intFromPtr(stack_memory.ptr + stack_size);
-    const clone_flags = linux.CLONE.VM | linux.SIG.CHLD;
+    const clone_flags = linux.CLONE.VM | linux.SIG.CHLD | linux.CLONE.NEWUTS;
 
     const arg = Arg.init(4, "go build -o main");
-    const pid = linux.clone(
+    const pid: usize = linux.clone(
         child,
         stack_ptr,
         clone_flags,
@@ -49,6 +49,9 @@ pub fn main() !void {
         0,
         null,
     );
+    const trunc: u32 = @truncate(pid);
+    const bitcast: u64 = @bitCast(pid);
+    std.debug.print("parent: pid: {}, truncate: {d}, bitcast: {d}\n", .{ pid, trunc, bitcast });
     var status: u32 = undefined;
     const wait_flags = 0;
 
@@ -65,6 +68,6 @@ pub fn main() !void {
         return error.SyscallError;
     }
 
-    _ = linux.waitpid(@intCast(pid), &status, wait_flags);
+    _ = linux.waitpid(@intCast(trunc), &status, wait_flags);
     std.debug.print("parent: tid: {}, pid: {}, ppid: {}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
 }
