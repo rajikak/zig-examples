@@ -1,0 +1,95 @@
+const std = @import("std");
+const linux = std.os.linux;
+
+const Arg = struct {
+    n: u8,
+    buf: []const u8,
+
+    fn init(n: u8, buf: []const u8) Arg {
+        return Arg{ .n = n, .buf = buf };
+    }
+};
+
+fn child(arg: usize) callconv(.c) u8 {
+    const input: *Arg = @ptrFromInt(arg);
+    const tid = linux.gettid();
+    const pid = linux.getpid();
+    const ppid = linux.getppid();
+
+    var buf: [100]u8 = undefined;
+    var w = std.fs.File.stdout().writer(&buf);
+    const stdout = &w.interface;
+
+    stdout.print("child:  tid: {}, pid: {}, ppid: {}, n = {d}, args = {s}\n", .{ tid, pid, ppid, input.n, input.buf }) catch |err| {
+        std.debug.print("writer failed: {any}\n", .{err});
+    };
+    stdout.flush() catch |err| {
+        std.debug.print("flush failed: {any}\n", .{err});
+    };
+
+    return 0;
+}
+
+pub fn main() !void {
+    var fd: [2]i32 = undefined;
+    const pres = std.os.linux.pipe(&fd);
+
+    if (pres == -1) {
+        std.debug.print("error: pipe\n", .{});
+        return error.SyscallError;
+    }
+
+    var buf: [100]u8 = undefined;
+    var w = std.fs.File.stdout().writer(&buf);
+    const stdout = &w.interface;
+    try stdout.print("pipe {d}, reader_fd: {d}, writer_fd:{d}\n", .{ pres, fd[0], fd[1] });
+    try stdout.flush();
+
+    const stack_size: usize = 8 * 1024;
+    const stack_memory = try std.heap.page_allocator.alloc(u8, stack_size);
+    defer std.heap.page_allocator.free(stack_memory);
+
+    const stack_ptr = @intFromPtr(stack_memory.ptr + stack_size);
+    const clone_flags = linux.CLONE.VM | linux.SIG.CHLD | linux.CLONE.NEWUTS;
+
+    const arg = Arg.init(4, "go build -o main");
+    const pid = linux.clone(
+        child,
+        stack_ptr,
+        clone_flags,
+        @intFromPtr(&arg),
+        null,
+        0,
+        null,
+    );
+
+    const e = linux.E.init(pid);
+    if (e != .SUCCESS) {
+        std.debug.print("there was an error: {any}\n", .{e});
+        return error.SyscallError;
+    }
+    const trunc: u32 = @truncate(pid);
+    const bitcast: u64 = @bitCast(pid);
+
+    try stdout.print("parent: pid: {}, truncate: {d}, bitcast: {d}\n", .{ pid, trunc, bitcast });
+    try stdout.flush();
+
+    var status: u32 = undefined;
+    const wait_flags = 0;
+
+    const pipe = fd[1];
+    const wres = linux.write(pipe, "ok", 2);
+    if (wres == -1) {
+        std.debug.print("error: write\n", .{});
+        return error.SyscallError;
+    }
+
+    const cres = linux.close(pipe);
+    if (cres == -1) {
+        std.debug.print("error: close\n", .{});
+        return error.SyscallError;
+    }
+
+    _ = linux.waitpid(@intCast(trunc), &status, wait_flags);
+    std.debug.print("parent: tid: {}, pid: {}, ppid: {}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
+}
