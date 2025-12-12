@@ -2,7 +2,31 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 
 pub fn main() !void {
-    arrayTest();
+    try arrayListTest2();
+}
+
+fn arrayListTest2() !void {
+    var buffer: [1000]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    defer fba.reset();
+
+    const allocator = fba.allocator();
+
+    var list: std.ArrayList([]const u8) = .empty;
+
+    // go build -tags lambda.norpc -o bootstrap .
+    try list.append(allocator, "go");
+    try list.append(allocator, "build");
+    try list.append(allocator, "-tags");
+    try list.append(allocator, "lambda.norpc");
+    try list.append(allocator, "-o");
+    try list.append(allocator, "bootstrap");
+    try list.append(allocator, ".");
+
+    std.debug.print("cap: {d}\n", .{list.capacity});
+    for (list.items) |item| {
+        std.debug.print("{s}\n", .{item});
+    }
 }
 
 fn arrayTest() void {
