@@ -47,12 +47,12 @@ const Container = struct {
 
     pub fn create(self: Container) !void {
         _ = self;
-        log.debug("Container: creation finsihed", .{});
+        log.debug("Creation finsihed", .{});
     }
 
     pub fn cleanExit(self: Container) !void {
         _ = self;
-        log.debug("Container: cleaning finsihed", .{});
+        log.debug("Cleaning container", .{});
     }
 };
 
@@ -85,13 +85,14 @@ const ContainerOpts = struct {
 
 // https://www.chromium.org/chromium-os/developer-library/reference/linux-constants/errnos/
 const ErrCode = union(enum) {
+    // https://ziglang.org/documentation/0.15.2/std/#std.os.linux.E
     OsError: std.os.linux.E,
     ArgumentInvalid,
 
     fn errCode(val: ErrCode) u8 {
         switch (val) {
             .ArgumentInvalid => return 1,
-            .OsError => return -1,
+            .OsError => return @intFromEnum(val),
         }
     }
 };
