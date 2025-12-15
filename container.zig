@@ -19,15 +19,40 @@ const Syscalls = struct {
 
 pub fn main() !void {
     const args = try parseArgs();
-    log.info("Args {{ debug: {}, command: {s}, uid: {s}, mount_dir: {s} }}\n", .{ args.debug, args.command, args.uid, args.mount_dir });
+    log.info("Args {{ debug: {}, command: {s}, uid: {d}, mount_dir: {s} }}", .{ args.debug, args.command, args.uid, args.mount_dir });
+
+    try start(args);
+    try exitWithRetCode(null);
+}
+
+fn start(args: Args) !void {
+    const container = try Container.new(args);
+    container.create() catch |err| {
+        log.err("Error while creating the container: {any}", .{err});
+        return error.ContainerCreationError;
+    };
+    log.debug("Finished, cleaning & exit", .{});
+    try container.cleanExit();
 }
 
 const Container = struct {
     config: ContainerOpts,
 
-    fn new(args: Args) Container {
-        const config = ContainerOpts.new(args.command, args.uid, args.mout_dir);
-        return Container {.config = config};
+    fn new(args: Args) !Container {
+        const config = try ContainerOpts.new(args.command, args.uid, args.mount_dir);
+        return Container{
+            .config = config,
+        };
+    }
+
+    pub fn create(self: Container) !void {
+        _ = self;
+        log.debug("Container: creation finsihed", .{});
+    }
+
+    pub fn cleanExit(self: Container) !void {
+        _ = self;
+        log.debug("Container: cleaning finsihed", .{});
     }
 };
 
@@ -37,7 +62,7 @@ const ContainerOpts = struct {
     uid: u32,
     mount_dir: []const u8,
 
-    fn new(command: []const u8, uid: u32, mount_dir: []const u8) ContainerOpts {
+    fn new(command: []const u8, uid: u32, mount_dir: []const u8) !ContainerOpts {
         const buf_size = 1000;
         var buffer: [buf_size]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
@@ -45,7 +70,7 @@ const ContainerOpts = struct {
         const allocator = fba.allocator();
 
         var list: std.ArrayList([]const u8) = .empty;
-        var it = std.mem.split(u8, command, " ");
+        var it = std.mem.splitSequence(u8, command, " ");
         while (it.next()) |v| {
             try list.append(allocator, v);
         }
@@ -58,32 +83,33 @@ const ContainerOpts = struct {
     }
 };
 
-// https://tldp.org/LDP/abs/html/exitcodes.html
-const ErrCode = enum {
+// https://www.chromium.org/chromium-os/developer-library/reference/linux-constants/errnos/
+const ErrCode = union(enum) {
+    OsError: std.os.linux.E,
     ArgumentInvalid,
 
     fn errCode(val: ErrCode) u8 {
         switch (val) {
-            .ArgumentInvalid => 1,
-            else => -1,
+            .ArgumentInvalid => return 1,
+            .OsError => return -1,
         }
     }
 };
-const Arg = struct {
+const Args = struct {
     debug: bool,
     command: []const u8,
-    uid: []const u8,
+    uid: u32,
     mount_dir: []const u8,
 };
 
-fn exitWithRetCode(err: ?ErrCode) !void {
-    if (err) |v| {
+fn exitWithRetCode(errorCode: ?ErrCode) !void {
+    if (errorCode) |v| {
         const code = ErrCode.errCode(v);
-        log.debug("error on exit: {}, code: {}\n", .{ v, code });
-        std.os.exit(code);
+        log.debug("Error on exit: {}, code: {}\n", .{ v, code });
+        std.posix.exit(code);
     } else {
-        log.debug("exit without any error, returning 0\n", .{});
-        std.os.exit(0);
+        log.debug("Exit without any error, returning 0\n", .{});
+        std.posix.exit(0);
     }
 }
 
@@ -101,7 +127,8 @@ fn parseArgs() !Args {
         if (std.mem.eql(u8, key, "mount")) {
             arg.mount_dir = val;
         } else if (std.mem.eql(u8, key, "uid")) {
-            arg.uid = val;
+            const uid = try std.fmt.parseInt(u32, val, 10);
+            arg.uid = uid;
         } else if (std.mem.eql(u8, key, "debug") and std.mem.eql(u8, val, "true")) {
             arg.debug = true;
         } else if (std.mem.eql(u8, key, "command")) {
