@@ -1,7 +1,8 @@
 const std = @import("std");
 const log = std.log;
 
-pub const log_level: std.log.Level = .debug;
+const log_level: std.log.Level = .debug;
+const minimu_kernel_version: f32 = 4.8;
 
 const Syscalls = struct {
     pub fn getpid() i32 {
@@ -26,6 +27,7 @@ pub fn main() !void {
 }
 
 fn start(args: Args) !void {
+    try kernelVersion();
     const container = try Container.new(args);
     container.create() catch |err| {
         log.err("Error while creating the container: {any}", .{err});
@@ -33,6 +35,24 @@ fn start(args: Args) !void {
     };
     log.debug("Finished, cleaning & exit", .{});
     try container.cleanExit();
+}
+
+fn kernelVersion() !void {
+    const host = std.posix.uname();
+    var splits = std.mem.splitSequence(u8, &host.release, "-");
+    const version = splits.first();
+    splits = std.mem.splitSequence(u8, version, ".");
+
+    const buf_size = 10;
+    var buf: [buf_size]u8 = undefined;
+    const major = try std.fmt.bufPrint(&buf, "{s}.{s}", .{ splits.first(), splits.next().? });
+    const vf = try std.fmt.parseFloat(f64, major);
+
+    log.debug("Linux release: {s}, {s}, {d}", .{ host.release, major, vf });
+
+    if (vf < minimu_kernel_version) {
+        return error.KernelVersionNotSupported;
+    }
 }
 
 const Container = struct {
