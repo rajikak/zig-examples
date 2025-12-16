@@ -29,7 +29,6 @@ pub fn main() !void {
 
 fn start(args: Args) !void {
     try kernelVersion();
-    try generateSocketPair();
 
     const container = try Container.new(args);
     container.create() catch |err| {
@@ -40,16 +39,40 @@ fn start(args: Args) !void {
     try container.cleanExit();
 }
 
-fn generateSocketPair() !void {
+fn child(config: ContainerOpts) usize {
+    log.info("Starting container with command {} and args {}", config.path, config.argv);
+    return 0;
+}
+
+fn sendFlag(fd: i32, val: bool) !void {
+    var buf: [1]u8 = undefined;
+    const send = try std.fmt.bufPrint(&buf, "{b}", .{val});
+
+    const res = std.posix.write(fd, send) catch |err| {
+        log.err("Cannot send boolean through socket: {}", .{err});
+        return error.SyscallError;
+    };
+    log.info("Send flag sent, {}, value: {}", .{ res, val });
+}
+
+fn receiveFlag(fd: i32) !bool {
+    const buf: [1]u8 = undefined;
+    const res = std.posix.read(fd, buf) catch |err| {
+        log.err("Cannot receive boilean from socket: {}", err);
+        return error.SyscallError;
+    };
+    log.info("Received flag, {}, {}", .{ res, buf });
+}
+
+fn generateSocketPair(fd: *[2]i32) !void {
     // https://man7.org/linux/man-pages/man2/socket.2.html
     // https://man7.org/linux/man-pages/man2/socketpair.2.html
 
     const domain: i32 = std.os.linux.AF.UNIX;
     const typ: i32 = std.os.linux.SOCK.STREAM; //posix.SOCK.STREAM;
     const protocol = 0; // see man page for socket(2)
-    var fd: [2]i32 = undefined;
 
-    const res = std.os.linux.socketpair(domain, typ, protocol, &fd);
+    const res = std.os.linux.socketpair(domain, typ, protocol, fd);
     const err = std.os.linux.E.init(res);
 
     if (err != .SUCCESS) {
@@ -77,12 +100,14 @@ fn kernelVersion() !void {
 }
 
 const Container = struct {
+    fd: [2]i32,
     config: ContainerOpts,
 
     fn new(args: Args) !Container {
         const config = try ContainerOpts.new(args.command, args.uid, args.mount_dir);
         return Container{
             .config = config,
+            .fd = config.fd,
         };
     }
 
@@ -92,7 +117,16 @@ const Container = struct {
     }
 
     pub fn cleanExit(self: Container) !void {
-        _ = self;
+        const write_fd = self.fd[0];
+        //std.posix.fsync(@intCast(write_fd)) catch |err| {
+        //    log.err("Unable to fsync any writes before closing the socket, {}", .{err});
+        //    return error.SyscallError;
+        //};
+        std.posix.close(write_fd);
+
+        const read_fd = self.fd[1];
+        std.posix.close(read_fd);
+
         log.debug("Cleaning container", .{});
     }
 };
@@ -102,8 +136,11 @@ const ContainerOpts = struct {
     argv: std.ArrayList([]const u8),
     uid: u32,
     mount_dir: []const u8,
+    fd: [2]i32,
 
     fn new(command: []const u8, uid: u32, mount_dir: []const u8) !ContainerOpts {
+        var fd: [2]i32 = undefined;
+        try generateSocketPair(&fd);
         const buf_size = 1000;
         var buffer: [buf_size]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
@@ -116,7 +153,13 @@ const ContainerOpts = struct {
             try list.append(allocator, v);
         }
 
-        return ContainerOpts{ .path = list.items[0], .argv = list, .uid = uid, .mount_dir = mount_dir };
+        return ContainerOpts{
+            .path = list.items[0],
+            .argv = list,
+            .uid = uid,
+            .mount_dir = mount_dir,
+            .fd = fd,
+        };
     }
 
     fn print(self: ContainerOpts) void {
@@ -147,9 +190,9 @@ const Args = struct {
 };
 
 fn exitWithRetCode(errorCode: ?ErrCode) !void {
-    if (errorCode) |v| {
-        const code = ErrCode.errCode(v);
-        log.debug("Error on exit: {}, code: {}\n", .{ v, code });
+    if (errorCode) |err| {
+        const code = ErrCode.errCode(err);
+        log.debug("Error on exit: {}, code: {}\n", .{ err, code });
         std.posix.exit(code);
     } else {
         log.debug("Exit without any error, returning 0\n", .{});
