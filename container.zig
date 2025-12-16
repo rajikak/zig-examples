@@ -1,5 +1,6 @@
 const std = @import("std");
 const log = std.log;
+const posix = std.posix;
 
 const log_level: std.log.Level = .debug;
 const minimu_kernel_version: f32 = 4.8;
@@ -28,6 +29,8 @@ pub fn main() !void {
 
 fn start(args: Args) !void {
     try kernelVersion();
+    try generateSocketPair();
+
     const container = try Container.new(args);
     container.create() catch |err| {
         log.err("Error while creating the container: {any}", .{err});
@@ -35,6 +38,24 @@ fn start(args: Args) !void {
     };
     log.debug("Finished, cleaning & exit", .{});
     try container.cleanExit();
+}
+
+fn generateSocketPair() !void {
+    // https://man7.org/linux/man-pages/man2/socket.2.html
+    // https://man7.org/linux/man-pages/man2/socketpair.2.html
+
+    const domain: i32 = std.os.linux.AF.UNIX;
+    const typ: i32 = std.os.linux.SOCK.STREAM; //posix.SOCK.STREAM;
+    const protocol = 0; // see man page for socket(2)
+    var fd: [2]i32 = undefined;
+
+    const res = std.os.linux.socketpair(domain, typ, protocol, &fd);
+    const err = std.os.linux.E.init(res);
+
+    if (err != .SUCCESS) {
+        log.err("There was an error when using std.os.linux.socketpair: {any}", .{err});
+        return error.SyscallError;
+    }
 }
 
 fn kernelVersion() !void {
@@ -108,10 +129,12 @@ const ErrCode = union(enum) {
     // https://ziglang.org/documentation/0.15.2/std/#std.os.linux.E
     OsError: std.os.linux.E,
     ArgumentInvalid,
+    SocketError,
 
     fn errCode(val: ErrCode) u8 {
         switch (val) {
             .ArgumentInvalid => return 1,
+            .SocketError => return @intFromEnum(val),
             .OsError => return @intFromEnum(val),
         }
     }
