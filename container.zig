@@ -39,9 +39,32 @@ fn start(args: Args) !void {
     try container.cleanExit();
 }
 
+const ChildArg = struct {
+    n:u8,
+    buf: []const u8,
+    config: ContainerOpts,
+
+    fn new(n:u8, buf: []const u8, config:ContainerOpts) ChildArg {
+        return ChildArg {.n = n, .buf = buf, .config = config};
+    }
+};
+
 fn child(config: ContainerOpts) usize {
     log.info("Starting container with command {} and args {}", config.path, config.argv);
     return 0;
+}
+
+fn generateChildProcess(config: ContainerOpts) !void {
+    
+    const stack_size:usize = 8 * 1024;
+    const stack_memoty = try std.heap.page_allocator.alloc(u8, stack_size);
+    defer std.heap.page_allocator.free(stack_memory);
+
+    const stack_ptr = @intFromPtr(stack_memory.ptr + stack_size);
+    const clone_flags = linux.CLONE.VM | linux.SIG.CHLD;
+
+    const 
+
 }
 
 fn sendFlag(fd: i32, val: bool) !void {
