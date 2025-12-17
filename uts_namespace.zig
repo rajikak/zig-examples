@@ -27,6 +27,15 @@ fn child(arg: usize) callconv(.c) u8 {
         std.debug.print("flush failed: {any}\n", .{err});
     };
 
+    const time = 2_000_000_000;
+    std.Thread.sleep(time);
+    stdout.print("child finished after: {d}ns\n", .{time}) catch |err| {
+        std.debug.print("writer failed: {any}\n", .{err});
+    };
+    stdout.flush() catch |err| {
+        std.debug.print("flush failed: {any}\n", .{err});
+    };
+
     return 0;
 }
 
@@ -90,6 +99,7 @@ pub fn main() !void {
         return error.SyscallError;
     }
 
+    std.debug.print("pareent waiting for child to finish\n", .{});
     _ = linux.waitpid(@intCast(trunc), &status, wait_flags);
-    std.debug.print("parent: tid: {}, pid: {}, ppid: {}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
+    std.debug.print("child finished, parenting is exiting: tid: {}, pid: {}, ppid: {}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
 }
