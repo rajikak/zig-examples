@@ -23,7 +23,7 @@ fn arrayListTest2() !void {
     try list.append(allocator, "bootstrap");
     try list.append(allocator, ".");
 
-    std.debug.print("cap: {d}\n", .{list.capacity});
+    std.debug.print("cap: {d}, first: {s}\n", .{ list.capacity, list.items[0] });
     for (list.items) |item| {
         std.debug.print("{s}\n", .{item});
     }
