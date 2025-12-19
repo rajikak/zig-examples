@@ -5,7 +5,21 @@ pub fn main() !void {
     //try testJoin2();
     //try random();
     const val = try concat();
-    std.debug.print("concat: {s}\n", .{val});
+    const val2 = try concat2(); //not working due to stack allocated
+    std.debug.print("concat: {s}:{s}\n", .{ val, val2 });
+}
+
+fn concat2() ![]u8 {
+    const hosts = [_][]const u8{ "cat", "world", "coffee", "girl", "man", "book" };
+    const adjectives = [_][]const u8{ "blue", "red", "green", "yellow", "big", "small" };
+
+    const rand = std.crypto.random;
+    const index1 = rand.intRangeAtMost(u8, 1, hosts.len - 1);
+    const index2 = rand.intRangeAtMost(u8, 1, adjectives.len - 1);
+
+    var buffer: [1000]u8 = undefined;
+    const a = try std.fmt.bufPrint(&buffer, "{s}-{s}", .{ hosts[index1], adjectives[index2] });
+    return a;
 }
 
 fn concat() ![]u8 {
