@@ -3,7 +3,27 @@ const std = @import("std");
 
 pub fn main() !void {
     //try testJoin2();
-    try random();
+    //try random();
+    const val = try concat();
+    std.debug.print("concat: {s}\n", .{val});
+}
+
+fn concat() ![]u8 {
+    var buffer: [1000]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buffer);
+    defer fba.reset();
+    const allocator = fba.allocator();
+
+    var list: std.ArrayList([]const u8) = .empty;
+    const inputs = [_][]const u8{ "hello", "world!", "welcome to", "zig programming!" };
+    for (inputs) |input| {
+        try list.append(allocator, input);
+    }
+
+    const allocator2 = std.heap.page_allocator;
+    const joined: []u8 = try std.mem.join(allocator2, ",", list.items);
+
+    return joined;
 }
 
 fn testJoin2() !void {
