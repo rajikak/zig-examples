@@ -2,12 +2,23 @@
 const std = @import("std");
 
 pub fn main() !void {
-    try testJoin2();
+    //try testJoin2();
+    try random();
 }
 
 fn testJoin2() !void {
     const arg = try join2();
     arg.print();
+}
+
+fn random() !void {
+    const hosts = [_][]const u8{ "cat", "world", "coffee", "girl", "man", "book" };
+    const adjectives = [_][]const u8{ "blue", "red", "green", "yellow", "big", "small" };
+
+    const rand = std.crypto.random;
+    const index1 = rand.intRangeAtMost(u8, 1, hosts.len - 1);
+    const index2 = rand.intRangeAtMost(u8, 1, adjectives.len - 1);
+    std.debug.print("host: {s}-{s}\n", .{ hosts[index1], adjectives[index2] });
 }
 
 const Arg = struct {
