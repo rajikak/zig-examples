@@ -7,7 +7,31 @@ const c = @cImport({
     @cInclude("sched.h");
 });
 
-// using native system calls
+// using Zig system call
+
+fn child_fn2(arg: usize) callconv(.c) u8 {
+    _ = arg;
+
+    const uts1 = posix.uname();
+    std.debug.print("[child] in new UTS namespace: nodename={s}\n", .{uts1.nodename});
+
+    const hostname = "anvilci2.org.ip-172-31-28-233.ec2.internal";
+    const res = std.os.linux.syscall2(.sethostname, @intFromPtr(hostname.ptr), hostname.len);
+    // @intFromPtr(hostname.ptr) == @intFromPtr(&hostname[0])
+    // const res = std.os.linux.syscall2(.sethostname, @intFromPtr(&hostname[0]), hostname.len);
+    const e = std.os.linux.E.init(res);
+    if (e != .SUCCESS) {
+        std.debug.print("[child] error setting hostname: {}\n", .{e});
+        return 0;
+    }
+
+    const uts2 = posix.uname();
+    std.debug.print("[child] in new UTS namespace: nodename={s}\n", .{uts2.nodename});
+
+    return 0;
+}
+
+// using native systems calls
 fn child_fn(arg: usize) callconv(.c) u8 {
     _ = arg;
     const new_name = "anvilci.org.ip-172-31-28-233.ec2.internal";
@@ -42,7 +66,7 @@ pub fn main() !void {
 
     // ptid/ctid/tp are optional for this simple case
     const pid = linux.clone(
-        child_fn,
+        child_fn2,
         stack_top,
         flags,
         0, // arg to child_fn

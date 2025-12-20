@@ -38,14 +38,6 @@ fn child(arg: usize) callconv(.c) u8 {
     return 0;
 }
 
-fn child2(arg: ?*anyopaque) callconv(.c) c_int {
-    _ = arg;
-    //std.debug.print("[child]  tid={d}, pid={d}, ppid={d}, buf={s}\n", .{ linux.gettid(), linux.getpid(), linux.getppid(), input.buf });
-    std.debug.print("[child]  tid={d}, pid={d}, ppid={d}\n", .{ linux.gettid(), linux.getpid(), linux.getppid() });
-
-    return 0;
-}
-
 pub fn toPid(x: usize) !linux.pid_t {
     if (x > std.math.maxInt(u64)) return error.PidOutOfRange;
     return @intCast(x);
@@ -59,7 +51,7 @@ pub fn main() !void {
     const stack_ptr = @intFromPtr(stack_memory.ptr + stack_size);
     const clone_flags = linux.CLONE.NEWUTS | linux.SIG.CHLD | linux.CLONE.VM;
 
-    const pid = c.clone(child2, @ptrFromInt(stack_ptr), clone_flags, null);
+    const pid = c.clone(child, @ptrFromInt(stack_ptr), clone_flags, null);
     if (pid == -1) {
         std.debug.print("[parent] clone error{}, {s}\n", .{ std.posix.errno(pid), c.strerror(pid) });
         return error.SyscallError;
