@@ -5,7 +5,7 @@ pub fn main() !void {
     //try testJoin2();
     //try random();
     const val = try concat();
-    const val2 = try concat2(); //not working due to stack allocated
+    const val2 = try concat2();
     std.debug.print("concat: {s}:{s}\n", .{ val, val2 });
 }
 
@@ -17,8 +17,11 @@ fn concat2() ![]u8 {
     const index1 = rand.intRangeAtMost(u8, 1, hosts.len - 1);
     const index2 = rand.intRangeAtMost(u8, 1, adjectives.len - 1);
 
-    var buffer: [1000]u8 = undefined;
-    const a = try std.fmt.bufPrint(&buffer, "{s}-{s}", .{ hosts[index1], adjectives[index2] });
+    // var buffer: [1000]u8 = undefined; // stack allocated buffer will not work
+    const allocator = std.heap.page_allocator;
+    const buf = try allocator.alloc(u8, 100);
+    //defer allocator.free(buf);
+    const a = try std.fmt.bufPrint(buf, "{s}-{s}", .{ hosts[index1], adjectives[index2] });
     return a;
 }
 
