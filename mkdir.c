@@ -33,14 +33,14 @@ int main(int argc, char *argv[]) {
 	child_pid = clone(childf, child_stack + STACK_SIZE, CLONE_NEWPID | SIGCHLD, argv[1]);
 
 	if (child_pid == -1) {
-		fprint(stderr, "clone error: %s\n", perror());
+		perror("clone()");
 		return -1;
 	}
 
 	printf("PID returned by clone(): %ld\n", (long) child_pid);
 
 	if (waitpid(child_pid, NULL, 0) == -1) {
-		fprintf(stderr, "waitpid error: %s\n", perror());
+		perror("waitpid()");
 		return -1;
 	}
 
