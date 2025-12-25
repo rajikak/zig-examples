@@ -22,6 +22,11 @@ fn concat2() ![]u8 {
     const buf = try allocator.alloc(u8, 100);
     //defer allocator.free(buf);
     const a = try std.fmt.bufPrint(buf, "{s}-{s}", .{ hosts[index1], adjectives[index2] });
+
+    var buf2: [100]u8 = undefined;
+    const b = try std.fmt.bufPrint(&buf2, "{s}-{s}", .{ hosts[index1], adjectives[index2] });
+    std.debug.print("len(a): {d}, typeOf(a): {any}, len(buf): {d}, typeOf(buf): {any}, len(b): {d}, typeOf(b):{any}\n", .{ a.len, @TypeOf(a), buf.len, @TypeOf(buf), b.len, @TypeOf(b) });
+
     return a;
 }
 
