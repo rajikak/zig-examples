@@ -5,3 +5,4 @@ zig-out/
 .DS_Store
 *.swo
 a.out
+string

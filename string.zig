@@ -4,9 +4,29 @@ const std = @import("std");
 pub fn main() !void {
     //try testJoin2();
     //try random();
-    const val = try concat();
-    const val2 = try concat2();
-    std.debug.print("concat: {s}:{s}\n", .{ val, val2 });
+    // const val = try concat();
+    // const val2 = try concat2();
+    //std.debug.print("concat: {s}:{s}\n", .{ val, val2 });
+    try mount();
+}
+
+fn mount() !void {
+    const upper = 9;
+    const rand = std.crypto.random;
+    const index = rand.intRangeAtMost(u8, 1, upper);
+
+    var buffer: [20]u8 = undefined;
+    const res = try std.fmt.bufPrint(&buffer, "/tmp/anvilci.{d}", .{index});
+
+    std.debug.print("stat: {s}, {d}\n", .{ res, res.len });
+
+    const fs = "proc";
+    const source = "proc";
+    const mres = std.os.linux.syscall5(.mount, @intFromPtr(source.ptr), @intFromPtr(res.ptr), @intFromPtr(fs.ptr), 0, 0);
+    const e = std.os.linux.E.init(mres);
+    if (e != .SUCCESS) {
+        std.debug.print("mount error: {}\n", .{e});
+    }
 }
 
 fn concat2() ![]u8 {
