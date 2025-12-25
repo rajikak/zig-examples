@@ -16,9 +16,16 @@ fn mount() !void {
     const index = rand.intRangeAtMost(u8, 1, upper);
 
     var buffer: [20]u8 = undefined;
-    const res = try std.fmt.bufPrint(&buffer, "/tmp/anvilci.{d}", .{index});
+    //const res = try std.fmt.bufPrint(&buffer, "/tmp/anvilci.{d}", .{index});
+    //const res: [:0]u8 = try std.fmt.bufPrintZ(&buffer, "/tmp/anvilci.{d}", .{index});
+    const res = try std.fmt.bufPrintZ(&buffer, "/tmp/anvilci.{d}", .{index});
 
     std.debug.print("stat: {s}, {d}\n", .{ res, res.len });
+
+    for (res) |ch| {
+        std.debug.print("{c} ", .{ch});
+    }
+    std.debug.print("\n", .{});
 
     const fs = "proc";
     const source = "proc";
