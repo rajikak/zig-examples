@@ -30,7 +30,18 @@ pub fn main() !void {
 
     mutable_slice[0] = 'H';
     std.debug.print("after: {s}, len: {d}, slice: {s}, len: {d}, buffer: {s}, len: {d}\n", .{ immutable_greeting, immutable_greeting.len, mutable_slice, mutable_slice.len, buffer, buffer.len });
+
+    const user = User{
+        .id = 1,
+        .power = 100,
+    };
+    std.debug.print("User: &user:{*}, &user.id:{*}, &user.power:{*}\n", .{ &user, &user.id, &user.power });
 }
+
+const User = struct {
+    id: u8,
+    power: u8,
+};
 
 fn increment(num: *u16) void {
     num.* += 1;
